@@ -6,6 +6,10 @@ import torchvision
 from tqdm.auto import tqdm
 from timeit import default_timer as timer
 from PIL import Image
+from torch.utils.tensorboard import SummaryWriter
+import os
+from datetime import datetime
+from matplotlib import pyplot as plt
 
 
 def save_model(model: torch.nn.Module,
@@ -113,3 +117,67 @@ def predict(img: Image,
     pred_time = round(timer() - start_time, 5)
 
     return pred_labels_and_probs, pred_time
+
+
+def create_writer(experiment_name: str,
+                  model_name: str,
+                  extra: str = None) -> SummaryWriter:
+    """
+    Creates a torch.utils.tensorboard.writer.SummaryWriter() instance saving to a specific log_dir.
+    log_dir is a combination of runs/timestamp/experiment_name/model_name/extra.
+    Where timestamp is the current date in YYYY-MM-DD format.
+
+    Args:
+        experiment_name (str): Nome of experiment.
+        model_name (str): Name of the model.
+        extra (str, optional): Anything extra to add int dir . Defaults to None.
+
+    Returns:
+        SummaryWriter: instance of a writer
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d")
+    if extra:
+        # Create log directory path
+        log_dir = os.path.join("runs", timestamp, experiment_name, model_name, extra)
+    else:
+        log_dir = os.path.join("runs", timestamp, experiment_name, model_name)
+
+    return SummaryWriter(log_dir=log_dir)
+
+
+def plot_loss_curves(results):
+    """Plots training curves of a results dictionary.
+
+    Args:
+        results (dict): dictionary containing list of values, e.g.
+            {"train_loss": [...],
+             "train_acc": [...],
+             "test_loss": [...],
+             "test_acc": [...]}
+    """
+    loss = results["train_loss"]
+    test_loss = results["test_loss"]
+
+    accuracy = results["train_acc"]
+    test_accuracy = results["test_acc"]
+
+    epochs = range(len(results["train_loss"]))
+
+    plt.figure(figsize=(15, 7))
+
+    # Plot loss
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, loss, label="train_loss")
+    plt.plot(epochs, test_loss, label="test_loss")
+    plt.title("Loss")
+    plt.xlabel("Epochs")
+    plt.legend()
+
+    # Plot accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, accuracy, label="train_accuracy")
+    plt.plot(epochs, test_accuracy, label="test_accuracy")
+    plt.title("Accuracy")
+    plt.xlabel("Epochs")
+    plt.legend()
+    plt.show()
