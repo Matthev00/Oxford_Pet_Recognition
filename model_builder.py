@@ -51,3 +51,25 @@ def create_resnet50(num_of_classes: int, device="cuda"):
 
     model.name = "resnet50"
     return model, transforms
+
+
+def create_effnetb0(out_features,
+                    device):
+    effnetb0_weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
+    transforms = effnetb0_weights.transforms()
+    model = torchvision.models.efficientnet_b0(weights=effnetb0_weights).to(device) # noqa 5501
+
+    for param in model.features.parameters():
+        param.requires_grad = False
+
+    utils.set_seeds(42)
+
+    # # Set cllasifier to suit problem
+    model.classifier = nn.Sequential(
+        nn.Dropout(p=0.2, inplace=True),
+        nn.Linear(in_features=1280,
+                  out_features=out_features,
+                  bias=True).to(device))
+
+    model.name = "effnetb0"
+    return model, transforms
