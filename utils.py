@@ -10,6 +10,9 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 from datetime import datetime
 from matplotlib import pyplot as plt
+from torch import nn
+from torchvision import transforms
+from typing import Tuple
 
 
 def save_model(model: torch.nn.Module,
@@ -180,4 +183,40 @@ def plot_loss_curves(results):
     plt.title("Accuracy")
     plt.xlabel("Epochs")
     plt.legend()
+    plt.show()
+
+
+def pred_and_plot_image(model: nn.Module,
+                        image_path: str,
+                        class_names: List[str],
+                        image_size: Tuple[int, int] = (224, 224),
+                        transform: torchvision.transforms = None,
+                        device: torch.device = "cuda"):
+    # Open an image
+    img = Image.open(image_path)
+
+    # Create transformation
+    if transform:
+        image_transform = transform
+    else:
+        image_transform = transforms.Compose([
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+        ])
+
+    model.to(device)
+
+    model.eval()
+    with torch.inference_mode():
+        transformed_image = image_transform(img).unsqueeze(dim=0)
+        image_pred = model(transformed_image.to(device))
+
+    img_pred_probs = torch.softmax(input=image_pred, dim=1)
+    img_label = torch.argmax(input=img_pred_probs, dim=1)
+    plt.figure()
+    plt.imshow(img)
+    plt.title(f'Pred: {class_names[img_label]} | Prob: {img_pred_probs.max():.3f}') # noqa 5501
+    plt.axis(False)
     plt.show()

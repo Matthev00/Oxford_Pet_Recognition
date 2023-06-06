@@ -8,13 +8,10 @@ import torchvision # noqa 5501
 from torch import nn # noqa 5501
 from torchvision import transforms, datasets # noqa 5501data_20_percent_path
 from torchinfo import summary # noqa 5501
-from torchmetrics import ConfusionMatrix # noqa 5501
-from torch.utils.data import DataLoader # noqa 5501
-from torch.utils.tensorboard import SummaryWriter # noqa 5501
 
 import os
-import random # noqa 5501
-from pathlib import Path # noqa 5501
+from pathlib import Path
+import random
 
 
 def main():
@@ -72,21 +69,38 @@ def main():
     #                              pin_memory=True,
     #                              num_workers=NUM_WORKERS)
 
-    # # Train model
-    optimizer = torch.optim.Adam(effnetb2.parameters(), lr=1e-2)
-    loss_fn = nn.CrossEntropyLoss()
-    result = engine.train(model=effnetb2,
-                          train_dataloader=train_dataloader,
-                          test_dataloader=test_dataloader,
-                          optimizer=optimizer,
-                          loss_fn=loss_fn,
-                          epochs=EPOCHS,
-                          writer=utils.create_writer(experiment_name="test",
-                                                     model_name="xyz"),
-                          device=device)
+    # # # Train model
+    # optimizer = torch.optim.Adam(effnetb2.parameters(), lr=1e-2)
+    # loss_fn = nn.CrossEntropyLoss()
+    # result = engine.train(model=effnetb2,
+    #                       train_dataloader=train_dataloader,
+    #                       test_dataloader=test_dataloader,
+    #                       optimizer=optimizer,
+    #                       loss_fn=loss_fn,
+    #                       epochs=EPOCHS,
+    #                       writer=utils.create_writer(experiment_name="test",
+    #                                                  model_name="xyz"),
+    #                       device=device)
 
-    utils.plot_loss_curves(results=result)
+    # utils.plot_loss_curves(results=result)
 
+    # # Load best model
+    best_model_path = "models/Pretrained_resnet50_10_epochs.pth"
+    resnet50.load_state_dict(torch.load(best_model_path))
+
+    model_size = Path(best_model_path).stat().st_size // (1024*1024)
+    print(f"Model size {model_size}")
+
+    # # Predict on image
+    img_to_plot = 5
+    test_image_path_list = list(Path(test_path).glob("*/*.jpg"))
+    img_path_sample = random.sample(population=test_image_path_list,
+                                    k=img_to_plot)
+    for img_path in img_path_sample:
+        utils.pred_and_plot_image(model=resnet50,
+                                  image_path=img_path,
+                                  class_names=class_names,
+                                  image_size=(288, 288))
 
 
 if __name__ == "__main__":
