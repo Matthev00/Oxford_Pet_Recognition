@@ -92,7 +92,7 @@ def main():
     print(f"Model size {model_size}")
 
     # # Predict on image
-    img_to_plot = 5
+    img_to_plot = 8
     test_image_path_list = list(Path(test_path).glob("*/*.jpg"))
     img_path_sample = random.sample(population=test_image_path_list,
                                     k=img_to_plot)
