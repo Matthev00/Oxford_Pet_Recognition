@@ -1,7 +1,7 @@
 from data_setup import download_data, split_data, create_dataloaders
 import utils
 import model_builder
-import engine
+import engine # noqa 5501
 
 import torch # noqa 5501
 import torchvision # noqa 5501
@@ -14,12 +14,14 @@ import os
 from pathlib import Path
 import random
 from PIL import Image
+from timeit import default_timer as timer
+import gradio as gr
 
 
 def main():
     args = utils.parse_arguments()
     BATCH_SIZE = args.batch_size
-    EPOCHS = args.num_epochs
+    EPOCHS = args.num_epochs # noqa 5501
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     NUM_WORKERS = os.cpu_count()
 
@@ -30,9 +32,6 @@ def main():
     resnet50, resnet50_transforms = model_builder.create_resnet50(
         num_of_classes=3,
         device=device)
-    train_transform = transforms.Compose(
-        [transforms.TrivialAugmentWide(),
-         resnet50_transforms])
 
     # # Create data 3 classes
     data_path = Path("data_3")
@@ -65,7 +64,7 @@ def main():
     resnet50.load_state_dict(torch.load(best_model_path))
 
     model_size = Path(best_model_path).stat().st_size // (1024*1024)
-    print(f"Model size {model_size}")
+    # print(f"Model size {model_size}")
 
     # # # Predict on image
     # img_to_plot = 8
@@ -135,7 +134,7 @@ def main():
 
     # # Predict on image
     img_to_plot = 8
-    test_image_path_list = list(Path("data/oxford-iiit-pet/images").glob("*.jpg"))
+    test_image_path_list = list(Path("data/oxford-iiit-pet/images").glob("*.jpg")) # noqa 5501
     img_path_sample = random.sample(population=test_image_path_list,
                                     k=img_to_plot)
     for img_path in img_path_sample:
@@ -146,6 +145,52 @@ def main():
 
     def predict(img: Image):
 
+        start = timer()
+
+        transformed_img = test_transforms(img).unsqueeze(0).to(device)
+
+        model.to(device)
+        model.eval()
+
+        with torch.inference_mode():
+            pred_logit = model(transformed_img)
+            pred_prob = torch.softmax(input=pred_logit,
+                                      dim=1)
+
+        pred_labels_and_probs = {class_names[i]: float(pred_prob[0][i]) for i in range(len(class_names))} # noqa 5501 # noqa 5501
+
+        pred_time = round(timer() - start, 5)
+
+        return pred_labels_and_probs, pred_time
+
+    example_list = [[str(path)] for path in random.sample(
+        population=test_image_path_list,
+        k=5
+    )]
+
+    # img = Image.open(fp=img_path_sample[0])
+    # print(predict(img))
+
+    title = "Pet recognition  🐶🐱"
+    description = "An EfficientNetB2 feature extractor computer vision model to classify images of pets." # noqa 5501
+
+    # # Write Food101 class names list to file
+    demo_path = Path("demo")
+    class_path = demo_path / "pet_recognition" / "class_names.txt"
+
+    with open(class_path, "w") as filehandle:
+        filehandle.write("\n".join(class_names))
+
+    # # Create Gradio
+    demo = gr.Interface(fn=predict,
+                        inputs=gr.Image(type="pil"),
+                        outputs=[gr.Label(num_top_classes=3, label="Predictions"), # noqa 5501
+                                 gr.Number(label="Prediction time (s)")],
+                        examples=example_list,
+                        title=title,
+                        description=description)
+
+    demo.launch()
 
 
 if __name__ == "__main__":
