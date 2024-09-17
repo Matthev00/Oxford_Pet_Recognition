@@ -62,7 +62,7 @@ def main():
         train_dataloader_resnet50,
         test_dataloader_resnet50,
         class_names,
-    ) = create_dataloaders(  
+    ) = create_dataloaders(
         train_dir=train_path,
         test_dir=test_path,
         transform=resnet50_transforms,
@@ -121,7 +121,7 @@ def main():
                         mlflow.log_metric(f"{key}_{idx}", val)
 
                 # Save model
-                save_name = f"Pretrained_{model_name}_{epoch}_epochs."
+                save_name = f"Pretrained_{model_name}_{epoch}_epochs.pth"
                 utils.save_model(model=model, target_dir="models", model_name=save_name)
                 mlflow.pytorch.log_model(model, "models")
 
